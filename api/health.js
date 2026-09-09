@@ -3,8 +3,8 @@
 // Used by the frontend to detect serverless API + DB presence.
 // ============================================================
 
-import { getPool } from "../../lib/db.js";
-import { ok, serverError, json } from "../../lib/helpers.js";
+import { getPool } from "../lib/db.js";
+import { ok, serverError, json } from "../lib/helpers.js";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {

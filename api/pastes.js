@@ -4,9 +4,9 @@
 // persists to PostgreSQL, returns { id, url }.
 // ============================================================
 
-import { ensureSchema, insertPaste } from "../../lib/db.js";
-import { generateId } from "../../lib/id.js";
-import { ok, badRequest, serverError, readJsonBody, json } from "../../lib/helpers.js";
+import { ensureSchema, insertPaste } from "../lib/db.js";
+import { generateId } from "../lib/id.js";
+import { ok, badRequest, serverError, readJsonBody, json } from "../lib/helpers.js";
 
 const MAX_ID_ATTEMPTS = 10;
 
