@@ -8,11 +8,13 @@
 import { Header } from "./components/header.js";
 import { HomePage } from "./components/homePage.js";
 import { PasteViewer } from "./components/pasteViewer.js";
+import { MyPastes } from "./components/myPastes.js";
 
 function parsePath(path) {
   const clean = path.replace(/\/+$/, "") || "/";
   const m = clean.match(/^\/p\/([^/]+)$/);
   if (m) return { name: "paste", id: m[1] };
+  if (clean === "/me") return { name: "me" };
   if (clean === "/") return { name: "home" };
   return { name: "home" };
 }
@@ -29,6 +31,8 @@ export function renderRoute() {
   let page;
   if (name === "paste") {
     page = PasteViewer({ id });
+  } else if (name === "me") {
+    page = MyPastes();
   } else {
     page = HomePage();
   }

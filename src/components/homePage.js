@@ -14,6 +14,7 @@ import {
 } from "../blobUpload.js";
 import { isJsonText, formatJson, highlightJson } from "../jsonHighlight.js";
 import { t, tpl } from "../i18n.js";
+import { getAuth, refreshAuth, openAuthModal } from "../auth.js";
 
 const MAX_TEXT_BYTES = 4 * 1024 * 1024;
 
@@ -270,6 +271,54 @@ export function HomePage() {
 
   fileRow.append(attachLabel, formatBtn, fileList);
 
+  // ---- visibility + account bonus ----
+  const optionsRow = document.createElement("div");
+  optionsRow.className = "home__options";
+
+  const visWrap = document.createElement("label");
+  visWrap.className = "home__vis";
+
+  const visSelect = document.createElement("select");
+  visSelect.className = "home__vis-select";
+
+  const optPublic = document.createElement("option");
+  optPublic.value = "public";
+  optPublic.textContent = t("vis.public");
+  const optPrivate = document.createElement("option");
+  optPrivate.value = "private";
+  optPrivate.textContent = t("vis.private");
+  visSelect.append(optPublic, optPrivate);
+
+  const bonusHint = document.createElement("span");
+  bonusHint.className = "home__bonus";
+
+  function syncAuthUI() {
+    const { user } = getAuth();
+    visSelect.disabled = !user;
+    visSelect.title = user ? "" : t("vis.needLogin");
+    optPrivate.disabled = !user;
+    if (!user && visSelect.value === "private") visSelect.value = "public";
+    if (user) {
+      bonusHint.textContent = t("vis.bonusSigned");
+    } else {
+      const link = document.createElement("a");
+      link.href = "#";
+      link.textContent = t("vis.bonusAnonymous");
+      link.addEventListener("click", (e) => {
+        e.preventDefault();
+        openAuthModal();
+      });
+      bonusHint.replaceChildren(link);
+    }
+  }
+
+  visWrap.append(
+    document.createTextNode(t("vis.label") + " "),
+    visSelect
+  );
+  optionsRow.append(visWrap, bonusHint);
+  refreshAuth().then(syncAuthUI);
+
   const footer = document.createElement("div");
   footer.className = "home__footer";
 
@@ -280,7 +329,7 @@ export function HomePage() {
 
   footer.append(button);
 
-  editor.append(box, error, hint, fileRow, footer);
+  editor.append(box, error, hint, fileRow, optionsRow, footer);
 
   // ---- submit handler ----
   let busy = false;
@@ -329,7 +378,11 @@ export function HomePage() {
         updateLoadingLabel(t("btn.creating"));
       }
 
-      const result = await createPaste({ content: text, files: uploaded });
+      const result = await createPaste({
+        content: text,
+        files: uploaded,
+        visibility: visSelect.value === "private" ? "private" : "public",
+      });
 
       field.value = "";
       selectedFiles = [];

@@ -281,12 +281,23 @@ export function PasteViewer({ id }) {
         loading.replaceWith(statusView(t("viewer.notFound")));
         return;
       }
+      if (entry.private) {
+        loading.replaceWith(statusView(t("viewer.private")));
+        return;
+      }
 
       const page = document.createElement("main");
       page.className = "app__stage viewer page-enter";
 
       const paper = document.createElement("div");
       paper.className = "viewer__paper";
+
+      if (entry.visibility === "private") {
+        const badge = document.createElement("div");
+        badge.className = "viewer__vis-badge";
+        badge.textContent = t("vis.private");
+        paper.append(badge);
+      }
 
       if (entry.text) {
         let text;

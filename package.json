@@ -11,6 +11,7 @@
     "deploy": "vercel --prod"
   },
   "dependencies": {
+    "nodemailer": "^6.9.13",
     "pg": "^8.11.0"
   }
 }

@@ -5,7 +5,8 @@
   "buildCommand": null,
   "devCommand": null,
   "rewrites": [
-    { "source": "/p/:id", "destination": "/" }
+    { "source": "/p/:id", "destination": "/" },
+    { "source": "/me", "destination": "/" }
   ],
   "functions": {
     "api/**/*.js": {

@@ -7,6 +7,7 @@
 import { ensureSchema, insertPaste } from "../lib/db.js";
 import { generateId } from "../lib/id.js";
 import { ok, badRequest, serverError, readJsonBody, json } from "../lib/helpers.js";
+import { getSession } from "../lib/session.js";
 
 const MAX_ID_ATTEMPTS = 10;
 const MAX_FILE_BYTES = 2 * 1024 * 1024 * 1024;
@@ -63,6 +64,11 @@ export default async function handler(req, res) {
       return badRequest(res, "Nothing to paste yet");
     }
 
+    // Optional ownership + privacy (only signed-in users can own a paste).
+    const session = getSession(req);
+    const ownerId = session && session.uid ? String(session.uid) : null;
+    const visibility = ownerId && body.visibility === "private" ? "private" : "public";
+
     await ensureSchema();
 
     let id = null;
@@ -74,6 +80,8 @@ export default async function handler(req, res) {
           content: content || null,
           created: Date.now(),
           files,
+          ownerId,
+          visibility,
         });
         id = candidate;
         break;

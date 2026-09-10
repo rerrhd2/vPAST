@@ -12,6 +12,8 @@
 // works on static hosts.
 // ============================================================
 
+import { t } from "./i18n.js";
+
 const STORAGE_KEY = "vpast.store.v1";
 let apiMode = true; // optimistic; corrected after the probe
 
@@ -54,13 +56,13 @@ async function fallbackIfNoApi(response, localFn) {
   return undefined;
 }
 
-export async function createPaste({ content = "", files = null } = {}) {
+export async function createPaste({ content = "", files = null, visibility = "public" } = {}) {
   if (!apiMode) return createPasteLocal(content, files);
 
   const response = await fetch("/api/pastes", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ content, files: files || [] }),
+    body: JSON.stringify({ content, files: files || [], visibility }),
   });
 
   const local = await fallbackIfNoApi(response, () =>
@@ -89,6 +91,11 @@ export async function getPaste(id) {
     return null;
   }
 
+  if (response.status === 403) {
+    const data = await parseJson(response);
+    return { private: true, message: (data && data.error) || t("viewer.private") };
+  }
+
   const local = await fallbackIfNoApi(response, () => getPasteLocal(id));
   if (local !== undefined) return local;
 
@@ -107,6 +114,9 @@ export async function getPaste(id) {
     files,
     file: files[0] || null,
     created: data.created,
+    visibility: data.visibility || "public",
+    owner: !!data.owner,
+    expiresAt: data.expiresAt || null,
   };
 }
 
