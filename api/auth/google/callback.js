@@ -4,10 +4,10 @@
 // /me with a session cookie.
 // ============================================================
 
-import { originOf } from "../../lib/helpers.js";
-import { upsertUser } from "../../lib/db.js";
-import { OAUTH_COOKIE, exchangeCode } from "../../lib/google.js";
-import { readCookie, toSession, signToken, sessionCookieValue } from "../../lib/session.js";
+import { originOf } from "../../../lib/helpers.js";
+import { upsertUser } from "../../../lib/db.js";
+import { OAUTH_COOKIE, exchangeCode } from "../../../lib/google.js";
+import { readCookie, toSession, signToken, sessionCookieValue } from "../../../lib/session.js";
 
 export default async function handler(req, res) {
   const fail = (loc) => {

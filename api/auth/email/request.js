@@ -4,9 +4,9 @@
 // SMTP is not configured (local dev / serve.ps1).
 // ============================================================
 
-import { ok, badRequest, json, readJsonBody, originOf } from "../../lib/helpers.js";
-import { signToken } from "../../lib/session.js";
-import { sendLoginEmail } from "../../lib/mail.js";
+import { ok, badRequest, json, readJsonBody, originOf } from "../../../lib/helpers.js";
+import { signToken } from "../../../lib/session.js";
+import { sendLoginEmail } from "../../../lib/mail.js";
 
 const LOGIN_TTL_MS = 15 * 60 * 1000;
 

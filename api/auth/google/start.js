@@ -4,8 +4,8 @@
 // short-lived HttpOnly cookie. Env: GOOGLE_CLIENT_ID/SECRET.
 // ============================================================
 
-import { ok, json, originOf } from "../../lib/helpers.js";
-import { configured, makeStateAndVerifier, authUrl, OAUTH_COOKIE } from "../../lib/google.js";
+import { ok, json, originOf } from "../../../lib/helpers.js";
+import { configured, makeStateAndVerifier, authUrl, OAUTH_COOKIE } from "../../../lib/google.js";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
