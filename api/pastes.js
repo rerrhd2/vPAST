@@ -9,9 +9,39 @@ import { generateId } from "../lib/id.js";
 import { ok, badRequest, serverError, readJsonBody, json } from "../lib/helpers.js";
 
 const MAX_ID_ATTEMPTS = 10;
+const MAX_FILE_BYTES = 2 * 1024 * 1024 * 1024;
+const MAX_TOTAL_BYTES = 2 * 1024 * 1024 * 1024;
 
 function makeUrl(id, base) {
   return `${base}/p/${id}`;
+}
+
+function sanitizeFile(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const name = typeof raw.name === "string" ? raw.name.trim().slice(0, 255) : "";
+  const url = typeof raw.url === "string" ? raw.url : "";
+  const downloadUrl = typeof raw.downloadUrl === "string" ? raw.downloadUrl : "";
+  const size = Number(raw.size);
+  const type = typeof raw.type === "string" ? raw.type.slice(0, 255) : "";
+
+  if (!name || !/^https?:\/\//.test(url)) return null;
+  if (!Number.isFinite(size) || size < 0 || size > MAX_FILE_BYTES) return null;
+
+  return { name, url, downloadUrl, size, type };
+}
+
+function sanitizeFiles(raw) {
+  if (raw === undefined || raw === null) return [];
+  const list = Array.isArray(raw) ? raw : [raw];
+  const files = [];
+  for (const item of list) {
+    const file = sanitizeFile(item);
+    if (!file) return null;
+    files.push(file);
+  }
+  const total = files.reduce((sum, f) => sum + f.size, 0);
+  if (total > MAX_TOTAL_BYTES) return null;
+  return files;
 }
 
 export default async function handler(req, res) {
@@ -22,9 +52,14 @@ export default async function handler(req, res) {
 
   try {
     const body = await readJsonBody(req);
-    const raw = typeof body.content === "string" ? body.content : "";
+    const rawText = typeof body.content === "string" ? body.content : "";
+    const content = rawText.trim();
+    const files = sanitizeFiles(body.files !== undefined ? body.files : body.file);
+    if (files === null) {
+      return badRequest(res, "File size limit exceeded (max 2 GB total)");
+    }
 
-    if (!raw.trim()) {
+    if (!content && files.length === 0) {
       return badRequest(res, "Nothing to paste yet");
     }
 
@@ -36,8 +71,9 @@ export default async function handler(req, res) {
       try {
         await insertPaste({
           id: candidate,
-          content: raw,
+          content: content || null,
           created: Date.now(),
+          files,
         });
         id = candidate;
         break;

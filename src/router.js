@@ -39,5 +39,16 @@ export function renderRoute() {
 export function initRouter() {
   const onNav = () => renderRoute();
   window.addEventListener("popstate", onNav);
+  window.addEventListener("langchange", onLangChange);
   renderRoute();
+}
+
+function onLangChange() {
+  const prev = document.querySelector(".editor__field");
+  const value = prev ? prev.value : null;
+  renderRoute();
+  if (value !== null && !prev.disabled) {
+    const field = document.querySelector(".editor__field");
+    if (field) field.value = value;
+  }
 }

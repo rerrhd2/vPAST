@@ -1,8 +1,32 @@
 // ============================================================
-// vPast — Header (brand)
+// vPast — Header (brand + language switcher)
 // ============================================================
 
+import { getLang, setLang, langCodeName, LANGS, t } from "../i18n.js";
+
 const ICONS_BASE = "/icons";
+
+function LangSwitch() {
+  const group = document.createElement("div");
+  group.className = "lang-switch";
+  group.setAttribute("role", "group");
+  group.setAttribute("aria-label", "Language");
+
+  for (const code of LANGS) {
+    const option = document.createElement("button");
+    option.type = "button";
+    option.className = "lang-switch__opt";
+    option.textContent = langCodeName(code);
+    option.setAttribute("aria-label", code.toUpperCase());
+    const active = code === getLang();
+    option.classList.toggle("is-active", active);
+    option.setAttribute("aria-pressed", active ? "true" : "false");
+    option.addEventListener("click", () => setLang(code));
+    group.append(option);
+  }
+
+  return group;
+}
 
 export function Header() {
   const header = document.createElement("header");
@@ -11,7 +35,7 @@ export function Header() {
   const brand = document.createElement("a");
   brand.className = "brand";
   brand.href = "/";
-  brand.setAttribute("aria-label", "vPast home");
+  brand.setAttribute("aria-label", t("header.home"));
 
   const logo = document.createElement("img");
   logo.className = "brand__logo";
@@ -24,10 +48,11 @@ export function Header() {
 
   brand.append(logo, name);
 
-  const spacer = document.createElement("span");
-  spacer.className = "header__spacer";
-  spacer.setAttribute("aria-hidden", "true");
+  const right = document.createElement("div");
+  right.className = "header__right";
 
-  header.append(brand, spacer);
+  right.append(LangSwitch());
+
+  header.append(brand, right);
   return header;
 }

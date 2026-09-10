@@ -54,16 +54,18 @@ async function fallbackIfNoApi(response, localFn) {
   return undefined;
 }
 
-export async function createPaste(text) {
-  if (!apiMode) return createPasteLocal(text);
+export async function createPaste({ content = "", files = null } = {}) {
+  if (!apiMode) return createPasteLocal(content, files);
 
   const response = await fetch("/api/pastes", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ content: text }),
+    body: JSON.stringify({ content, files: files || [] }),
   });
 
-  const local = await fallbackIfNoApi(response, () => createPasteLocal(text));
+  const local = await fallbackIfNoApi(response, () =>
+    createPasteLocal(content, files)
+  );
   if (local) return local;
 
   if (!response.ok) {
@@ -96,7 +98,16 @@ export async function getPaste(id) {
   }
 
   const data = await response.json();
-  return { id: data.id, text: data.content, created: data.created };
+  const files = Array.isArray(data.files)
+    ? data.files.filter((f) => f && f.name && f.url)
+    : [];
+  return {
+    id: data.id,
+    text: data.content,
+    files,
+    file: files[0] || null,
+    created: data.created,
+  };
 }
 
 // ============================================================
@@ -138,10 +149,14 @@ function shortOrigin() {
   return a.href.replace(/\/$/, "");
 }
 
-function createPasteLocal(text) {
+function createPasteLocal(content, files = null) {
   const id = makeIdLocal();
   const store = loadLocal();
-  store[id] = { text, created: Date.now() };
+  store[id] = {
+    text: content || "",
+    files: files || [],
+    created: Date.now(),
+  };
   persistLocal(store);
   return { id, url: `${shortOrigin()}/p/${id}`, path: `/p/${id}` };
 }
@@ -150,5 +165,16 @@ function getPasteLocal(id) {
   const store = loadLocal();
   const entry = store[id];
   if (!entry) return null;
-  return { id, text: entry.text, created: entry.created };
+  const files = Array.isArray(entry.files)
+    ? entry.files
+    : entry.file
+      ? [entry.file]
+      : [];
+  return {
+    id,
+    text: entry.text || "",
+    files,
+    file: files[0] || null,
+    created: entry.created,
+  };
 }
