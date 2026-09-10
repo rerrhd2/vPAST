@@ -78,6 +78,46 @@ export function AdminMenu() {
   panel.hidden = true;
   panel.setAttribute("role", "menu");
 
+  // ---- recent pastes ----
+  const listHead = document.createElement("h4");
+  listHead.className = "admin__head";
+  listHead.textContent = t("admin.list");
+
+  const listBox = document.createElement("div");
+  listBox.className = "admin__listbox";
+
+  function renderList(items) {
+    listBox.replaceChildren();
+    if (!Array.isArray(items) || items.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "admin__empty";
+      empty.textContent = t("admin.listEmpty");
+      listBox.append(empty);
+      return;
+    }
+    for (const item of items) {
+      const a = document.createElement("a");
+      a.className = "admin__link";
+      a.href = "/p/" + encodeURIComponent(item.id);
+      a.title = "/p/" + item.id;
+
+      const idSpan = document.createElement("span");
+      idSpan.className = "admin__link-id";
+      idSpan.textContent = item.id;
+
+      const meta = document.createElement("span");
+      meta.className = "admin__link-meta";
+      const mc = Number(item.fileCount) || 0;
+      if (mc > 1) meta.textContent = tpl("admin.filesShort", { n: String(mc) });
+      else if (mc === 1) meta.textContent = t("admin.fileShort");
+      else if (item.hasText) meta.textContent = t("admin.textOnly");
+      else meta.textContent = t("admin.listMetaEmpty");
+
+      a.append(idSpan, meta);
+      listBox.append(a);
+    }
+  }
+
   // ---- stats ----
   const statsHead = document.createElement("h4");
   statsHead.className = "admin__head";
@@ -105,6 +145,7 @@ export function AdminMenu() {
           err.textContent =
             status === 403 ? t("admin.denied") : tpl("admin.error", { msg: t("viewer.loadError") });
           stats.append(err);
+          renderList(null);
           return;
         }
         stats.append(
@@ -112,6 +153,7 @@ export function AdminMenu() {
           statLine(t("admin.files"), String(data.files)),
           statLine(t("admin.bytes"), formatBytes(data.bytes))
         );
+        renderList(data.list);
       })
       .catch(() => {
         stats.replaceChildren();
@@ -119,6 +161,7 @@ export function AdminMenu() {
         err.className = "admin__error";
         err.textContent = tpl("admin.error", { msg: "network" });
         stats.append(err);
+        renderList(null);
       });
   }
 
@@ -194,6 +237,8 @@ export function AdminMenu() {
   panel.append(
     statsHead,
     stats,
+    listHead,
+    listBox,
     delHead,
     delRow,
     delMsg,
