@@ -3,6 +3,7 @@
 // ============================================================
 
 import { getLang, setLang, langCodeName, LANGS, t } from "../i18n.js";
+import { AdminMenu, watchAdmin } from "../admin.js";
 
 const ICONS_BASE = "/icons";
 
@@ -51,7 +52,23 @@ export function Header() {
   const right = document.createElement("div");
   right.className = "header__right";
 
-  right.append(LangSwitch());
+  const langSwitch = LangSwitch();
+
+  const adminSlot = document.createElement("div");
+  adminSlot.className = "header__admin-slot";
+  let adminMenu = null;
+  function applyAdmin(admin) {
+    if (admin && !adminMenu) {
+      adminMenu = AdminMenu();
+      adminSlot.append(adminMenu);
+    } else if (!admin && adminMenu) {
+      adminMenu.remove();
+      adminMenu = null;
+    }
+  }
+  watchAdmin(applyAdmin);
+
+  right.append(adminSlot, langSwitch);
 
   header.append(brand, right);
   return header;

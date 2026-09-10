@@ -21,7 +21,12 @@
   гиперссылки. Свой ZIP-парсер + DOMParser (без внешних библиотек).
 - **JSON = как в VS Code**: текст, похожий на JSON, в редакторе подсвечивается (палитра
   VS Code Dark+), а кнопка «Форматировать JSON» под редактором делает аккуратную
-  индентацию. Подсветка работает и в превью файла, и в основном тексте пасты.
+  индентацию (кнопка видна только когда прикреплён `.json`-файл). Подсветка работает
+  и в превью файла, и в основном тексте пасты.
+- **Админ-меню** (серверные API): если в браузере стоит кука `vpastadmin=admin`
+  (выставляется только внешним расширением — само приложение её никогда не пишет),
+  в шапке появляется «Admin»-панель: статистика хранилища, удаление пасты по ID и
+  полная очистка. Все админ-эндпоинты проверяют куку и без неё отвечают 403.
 - **Сроки жизни файлов**: паста с файлом > 1 ГБ живёт **14 дней**, файл ≤ 1 ГБ — **3 месяца**.
   После истечения `GET /api/pastes/:id` возвращает 404. Чистые текстовые пасты живут вечно.
 
@@ -30,10 +35,13 @@
 ```
 Browser ──(текст)──▶ POST /api/pastes ──▶ PostgreSQL (Neon)
 Browser ──(GET)────▶ GET  /api/pastes/:id ──▶ vpast.vercel.app (SPA + API)
-Browser ──(PUT, ≤2 ГБ)──▶ Relay (VPS :8787) ──▶ Telegram-канал (file_id)
+Browser ──(POST→PUT fallback, ≤2 ГБ)──▶ Relay (VPS :8787) ──▶ Telegram-канал (file_id)
 Browser ──(DL)────▶ Relay GET /dl?id=... ──▶ файл из Telegram ──▶ клиент
 Browser ──────────▶ POST /api/uploads ──▶ { uploadUrl: "http://<VPS>:8787/up" }
 ```
+
+Клиент загружает файл **POST**-запросом с fallback на **PUT** (при 405/501) — это
+обходит прокси (напр. HF Spaces), которые пропускают POST, но режут/не поддерживают PUT.
 
 Двухступенчатая загрузка нужна, потому что Vercel-функции душат тело запроса на ~4.5 МБ,
 а публичный Telegram Bot API — на 50 МБ вверх / 20 МБ вниз. Поэтому на VPS поднимается
@@ -48,18 +56,25 @@ Browser ──────────▶ POST /api/uploads ──▶ { uploadUr
 | GET    | `/api/pastes/:id`     | Получить Past. 404 если нет или истёк              |
 | GET    | `/api/health`         | Проверка API и базы                                 |
 | POST   | `/api/uploads`        | Вернуть `uploadUrl` релея (env `RELAY_UPLOAD_URL`) |
-| PUT    | `<relay>/up`          | Принять файл ≤ 2 ГБ, загрузить в Telegram, вернуть метаданные |
+| GET    | `/api/admin/stats`    | Статистика хранилища (кука `vpastadmin=admin`)      |
+| POST   | `/api/admin/delete`   | Удалить Past по `{ "id": "…" }` (та же кука)        |
+| POST   | `/api/admin/clear`    | Полная очистка хранилища (та же кука)               |
+| PUT/POST | `<relay>/up`        | Принять файл ≤ 2 ГБ (POST с fallback на PUT), вернуть метаданные |
 | GET    | `<relay>/dl?id=…`     | Отдать файл из Telegram клиенту. `&preview=1` — inline с MIME для превью |
 
 ## Локальная разработка
 
 `serve.ps1` раздаёт фронтенд и эмулирует весь API, включая загрузку файлов
-(`POST /api/uploads` → `PUT /api/upload-file`, файлы в `data/files/`).
+(`POST /api/uploads` → `POST`/`PUT /api/upload-file`, файлы в `data/files/`).
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File serve.ps1 -Port 8080
 # открыть http://localhost:8080
 ```
+
+Админ-меню для проверки: в DevTools выполни
+`document.cookie = "vpastadmin=admin; path=/"; location.reload()` — в шапке появится
+панель Admin (статистика, удаление по ID, очистка).
 
 ## Развёртывание релея (Hugging Face Space, без карты)
 
@@ -114,12 +129,16 @@ api/                      serverless functions
   pastes.js               POST /api/pastes (текст + метаданные файла, ≤ 2 ГБ)
   pastes/[id].js          GET  /api/pastes/:id (+ истечение файлов)
   uploads.js              POST /api/uploads (url релея из RELAY_UPLOAD_URL)
+  admin/stats.js          GET  /api/admin/stats (кука vpastadmin=admin)
+  admin/delete.js         POST /api/admin/delete { id }
+  admin/clear.js          POST /api/admin/clear
 lib/
   db.js                   PostgreSQL pool + schema + queries
+  admin.js                проверка админ-куки vpastadmin=admin
   id.js                   генерация уникальных ID
   helpers.js              JSON-обёртки, readJsonBody (лимит 4 МБ)
 relay/
-  relay.js                релей: PUT /up + GET /dl, стриминг, CORS, keep-alive
+  relay.js                релей: PUT/POST /up + GET /dl, стриминг, CORS, keep-alive
   Dockerfile              сборка под Hugging Face Space (tg-bot-api + relay)
   entrypoint.sh           старт bot API-сервера (local, 2 ГБ) + релея
   bootstrap.sh            альтернатива: установка на VPS (systemd)
@@ -129,11 +148,12 @@ src/
   i18n.js                 словари EN/RU/UK, t()/tpl(), сохранение языка
   store.js                data-layer: fetch к API, fallback localStorage
   router.js               маршруты / и /p/:id
-  blobUpload.js           upload файла: токен → PUT с прогрессом
+  blobUpload.js           upload файла: POST → PUT fallback, прогресс
   jsonHighlight.js        подсветка и автоформат JSON (палитра VS Code Dark+)
   docxRender.js           рендер .docx в HTML (свой ZIP + DOMParser, без библиотек)
+  admin.js                админ-меню: isAdmin (кука), поллинг, панель со стат-кой
   components/             header, homePage, pasteViewer, dynamicIsland, …
-serve.ps1                 локальный dev-сервер (статик + JSON API + загрузки)
+serve.ps1                 локальный dev-сервер (статик + JSON API + загрузки + админка)
 ```
 
 ## Режимы хранения

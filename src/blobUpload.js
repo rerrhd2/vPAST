@@ -36,11 +36,13 @@ async function requestUploadUrl() {
   return response.json();
 }
 
-function putFile(uploadUrl, file, onProgress) {
+function putFile(uploadUrl, file, method, onProgress) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open("PUT", uploadUrl);
+    xhr.open(method, uploadUrl);
 
+    // If the MIME type is non-trivial the browser will send a CORS
+    // preflight; the relay answers OPTIONS with the allowed methods.
     xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
 
     if (onProgress) {
@@ -56,18 +58,49 @@ function putFile(uploadUrl, file, onProgress) {
         try {
           resolve(JSON.parse(xhr.responseText));
         } catch {
-          reject(new Error("Invalid upload response"));
+          reject(makeError("Invalid upload response", xhr.status));
         }
       } else {
-        reject(new Error(`Upload failed (${xhr.status})`));
+        let serverMessage = null;
+        try {
+          const data = JSON.parse(xhr.responseText);
+          if (data && data.error) serverMessage = data.error;
+        } catch {
+          /* ignore */
+        }
+        const err = makeError(
+          serverMessage || `Upload failed (${xhr.status})`,
+          xhr.status
+        );
+        reject(err);
       }
     });
 
-    xhr.addEventListener("error", () => reject(new Error("Connection error")));
-    xhr.addEventListener("abort", () => reject(new Error("Upload aborted")));
+    xhr.addEventListener("error", () => reject(makeError("Connection error", 0)));
+    xhr.addEventListener("abort", () => reject(makeError("Upload aborted", 0)));
 
     xhr.send(file);
   });
+}
+
+function makeError(message, status) {
+  const err = new Error(message);
+  err.status = status;
+  return err;
+}
+
+async function sendOnce(uploadUrl, file, onProgress) {
+  // POST is the most portable method for public proxies (HF Spaces
+  // officially supports GET/POST). PUT is kept as a fallback for
+  // relays that only expose /up as PUT.
+  try {
+    return await putFile(uploadUrl, file, "POST", onProgress);
+  } catch (err) {
+    if (err.status === 405 || err.status === 501) {
+      return putFile(uploadUrl, file, "PUT", onProgress);
+    }
+    throw err;
+  }
 }
 
 /**
@@ -83,7 +116,7 @@ export async function uploadFile(file, onProgress) {
   });
   const target = `${uploadUrl}${uploadUrl.includes("?") ? "&" : "?"}${query.toString()}`;
 
-  const raw = await putFile(target, file, onProgress);
+  const raw = await sendOnce(target, file, onProgress);
 
   return {
     name: raw.name || file.name,

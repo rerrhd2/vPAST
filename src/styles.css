@@ -176,6 +176,140 @@ button {
   transform: scale(0.94);
 }
 
+/* ---------- Admin menu ---------- */
+.header__admin-slot {
+  display: contents;
+}
+
+.admin {
+  position: relative;
+  margin-right: 10px;
+}
+
+.admin__btn {
+  padding: 8px 13px;
+  border-radius: var(--r-md);
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  color: var(--text-2);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  transition: color var(--dur-fast) ease, background-color var(--dur-fast) ease;
+}
+
+.admin__btn:hover {
+  color: var(--accent-hi);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.admin__panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  z-index: 50;
+  width: 264px;
+  padding: 15px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+  animation: previewPop var(--dur) var(--ease-out) both;
+}
+
+.admin__head {
+  margin: 0 0 8px;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.admin__head:not(:first-child) {
+  margin-top: 16px;
+}
+
+.admin__stats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin__stat {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: var(--text-2);
+}
+
+.admin__stat-value {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.admin__row {
+  display: flex;
+  gap: 8px;
+}
+
+.admin__input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-family: Consolas, "Cascadia Code", monospace;
+}
+
+.admin__input::placeholder {
+  color: var(--text-3);
+}
+
+.admin__input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.admin__row .btn {
+  padding: 8px 14px;
+  font-size: 0.82rem;
+}
+
+.btn--danger {
+  background: rgba(220, 60, 60, 0.14);
+  color: #ff8080;
+  border-color: rgba(220, 60, 60, 0.35);
+  box-shadow: none;
+}
+
+.btn--danger:hover {
+  background: rgba(220, 60, 60, 0.24);
+  color: #ffa0a0;
+  box-shadow: none;
+}
+
+.admin__msg {
+  min-height: 18px;
+  margin-top: 8px;
+  font-size: 0.78rem;
+  color: var(--text-3);
+}
+
+.admin__error {
+  font-size: 0.8rem;
+  color: #ff8080;
+}
+
+.admin__muted {
+  font-size: 0.8rem;
+  color: var(--text-3);
+}
+
 .lang-switch__opt.is-active {
   background: #ececec;
   color: #0a0a0a;

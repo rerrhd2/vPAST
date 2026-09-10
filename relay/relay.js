@@ -109,7 +109,9 @@ http
     }
 
     // ---- Upload: browser -> us -> (local tg api) -> channel ----
-    if (req.method === "PUT" && pathname === "/up") {
+    // POST is the portable method for public proxies (HF Spaces
+    // officially supports GET/POST); PUT is kept for compatibility.
+    if ((req.method === "PUT" || req.method === "POST") && pathname === "/up") {
       let declared = -1;
       try {
         declared = Number(req.headers["content-length"]);

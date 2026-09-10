@@ -114,6 +114,7 @@ export function HomePage() {
   formatBtn.className = "btn btn--ghost btn--format";
   formatBtn.textContent = t("json.format");
   formatBtn.title = t("json.formatTip");
+  formatBtn.hidden = true;
   formatBtn.addEventListener("click", () => {
     const formatted = formatJson(field.value);
     if (formatted === null) {
@@ -124,6 +125,12 @@ export function HomePage() {
     field.value = formatted;
     syncHighlight();
   });
+
+  const isJsonFile = (file) => {
+    const name = (file.name || "").toLowerCase();
+    const type = (file.type || "").toLowerCase();
+    return name.endsWith(".json") || type === "application/json";
+  };
 
   const fileList = document.createElement("div");
   fileList.className = "file-list";
@@ -167,6 +174,7 @@ export function HomePage() {
       fileList.append(createChip(file));
     }
     attachText.textContent = t("file.attach");
+    formatBtn.hidden = !selectedFiles.some(isJsonFile);
   }
 
   function addFiles(items) {
@@ -337,7 +345,14 @@ export function HomePage() {
       console.error(err);
       setLoading(false);
       busy = false;
-      error.textContent = selectedFiles.length ? t("file.uploadError") : t("err.create");
+      const uploadFailed = selectedFiles.length > 0;
+      const detail = err && err.message ? String(err.message) : "";
+      if (uploadFailed) {
+        error.textContent = detail || t("file.uploadError");
+      } else {
+        error.textContent = t("err.create");
+      }
+      error.title = detail || "";
       if (!selectedFiles.length) field.focus();
     }
   });
